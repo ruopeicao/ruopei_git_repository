@@ -1,0 +1,222 @@
+How to change dbid without change db name:
+
+
+SQL> select dbid, name from v$database;
+
+      DBID NAME
+---------- ---------
+2514319859 TESTDB
+
+SQL> archive log list
+Database log mode              Archive Mode
+Automatic archival             Enabled
+Archive destination            /u01/g2dev/002/archive/testdb
+Oldest online log sequence     90
+Next log sequence to archive   91
+Current log sequence           91
+SQL> shutdown immediate
+Database closed.
+Database dismounted.
+ORACLE instance shut down.
+SQL> startup
+ORACLE instance started.
+
+Total System Global Area  314572800 bytes
+Fixed Size                  2040280 bytes
+Variable Size              96476712 bytes
+Database Buffers          213909504 bytes
+Redo Buffers                2146304 bytes
+Database mounted.
+Database opened.
+SQL> select file_name from dba_data_files order by tablespace_name;
+
+FILE_NAME
+--------------------------------------------------------------------------------
+/u01/g2dev/002/oradata/testdb/testdb_sysaux.dbf
+/u01/g2dev/002/oradata/testdb/testdb_system.dbf
+/u01/g2dev/002/oradata/testdb/testdb_undotbs_01.dbf
+/u01/g2dev/002/oradata/testdb/testdb_users_01.dbf
+
+
+SQL> shutdown immediate
+Database closed.
+Database dismounted.
+ORACLE instance shut down.
+SQL>exit
+
+# Make a cold backup incase need to backout.
+
+oracle@devdb01:/opt/home/oracle [testdb]
+# cd /u01/g2dev/002/oradata/
+
+oracle@devdb01:/u01/g2dev/002/oradata [testdb]
+# ls -alrt
+total 15
+drwxr-xr-x   5 oracle   dba            5 Apr 28 15:30 ..
+drwxr-xr-x   2 oracle   dba           12 Sep 29 13:16 testdb
+drwxr-xr-x   2 oracle   dba           18 Sep 29 13:37 devbld
+drwxr-xr-x   2 oracle   dba            2 Sep 29 16:07 dupdb
+drwxr-xr-x   5 oracle   dba            5 Sep 29 16:07 .
+
+oracle@devdb01:/u01/g2dev/002/oradata [testdb]
+# cd testdb
+
+oracle@devdb01:/u01/g2dev/002/oradata/testdb [testdb]
+# ls -alrt
+total 2073384
+drwxr-xr-x   2 oracle   dba           12 Sep 29 13:16 .
+drwxr-xr-x   5 oracle   dba            5 Sep 29 16:07 ..
+-rw-r-----   1 oracle   dba      209717248 Oct  4 22:02 testdb__temp_01.dbf
+-rw-r-----   1 oracle   dba      10486272 Oct  6 16:38 testdbredo_g2_m1.log
+-rw-r-----   1 oracle   dba      10486272 Oct  6 16:38 testdbredo_g2_m2.log
+-rw-r-----   1 oracle   dba      10486272 Oct  6 16:41 testdbredo_g1_m1.log
+-rw-r-----   1 oracle   dba      10486272 Oct  6 16:41 testdbredo_g1_m2.log
+-rw-r-----   1 oracle   dba      524290048 Oct  6 16:41 testdb_system.dbf
+-rw-r-----   1 oracle   dba      104859648 Oct  6 16:41 testdb_undotbs_01.dbf
+-rw-r-----   1 oracle   dba      262146048 Oct  6 16:41 testdb_sysaux.dbf
+-rw-r-----   1 oracle   dba      104859648 Oct  6 16:41 testdb_users_01.dbf
+-rw-r-----   1 oracle   dba      20922368 Oct  6 16:41 control01.ctl
+
+oracle@devdb01:/u01/g2dev/002/oradata/testdb [testdb]
+# mkdir backup
+
+oracle@devdb01:/u01/g2dev/002/oradata/testdb [testdb]
+# cp -p *.dbf backup/.
+
+oracle@devdb01:/u01/g2dev/002/oradata/testdb [testdb]
+# cp *.log backup/.
+
+oracle@devdb01:/u01/g2dev/002/oradata/testdb [testdb]
+# cp control01.ctl backup/.
+
+oracle@devdb01:/u01/g2dev/002/oradata/testdb [testdb]
+# cd backup  
+
+oracle@devdb01:/u01/g2dev/002/oradata/testdb/backup [testdb]
+# ls -alrt
+total 2481972
+-rw-r-----   1 oracle   dba      209717248 Oct  4 22:02 testdb__temp_01.dbf
+-rw-r-----   1 oracle   dba      524290048 Oct  6 16:41 testdb_system.dbf
+-rw-r-----   1 oracle   dba      104859648 Oct  6 16:41 testdb_undotbs_01.dbf
+-rw-r-----   1 oracle   dba      262146048 Oct  6 16:41 testdb_sysaux.dbf
+-rw-r-----   1 oracle   dba      104859648 Oct  6 16:41 testdb_users_01.dbf
+drwxr-xr-x   3 oracle   dba           13 Oct  6 16:42 ..
+-rw-r-----   1 oracle   dba      10486272 Oct  6 16:44 testdbredo_g1_m1.log
+-rw-r-----   1 oracle   dba      10486272 Oct  6 16:44 testdbredo_g1_m2.log
+-rw-r-----   1 oracle   dba      10486272 Oct  6 16:44 testdbredo_g2_m1.log
+-rw-r-----   1 oracle   dba      10486272 Oct  6 16:44 testdbredo_g2_m2.log
+drwxr-xr-x   2 oracle   dba           12 Oct  6 16:44 .
+-rw-r-----   1 oracle   dba      20922368 Oct  6 16:44 control01.ctl
+
+oracle@devdb01:/u01/g2dev/002/oradata/testdb/backup [testdb]
+# cd ..
+
+oracle@devdb01:/u01/g2dev/002/oradata/testdb [testdb]
+# sqlplus / as sysdba
+
+SQL*Plus: Release 10.2.0.4.0 - Production on Wed Oct 6 16:45:16 2010
+
+Copyright (c) 1982, 2007, Oracle.  All Rights Reserved.
+
+Connected to an idle instance.
+
+SQL> startup mount
+ORACLE instance started.
+
+Total System Global Area  314572800 bytes
+Fixed Size                  2040280 bytes
+Variable Size              96476712 bytes
+Database Buffers          213909504 bytes
+Redo Buffers                2146304 bytes
+Database mounted.
+SQL> exit
+Disconnected from Oracle Database 10g Enterprise Edition Release 10.2.0.4.0 - 64bit Production
+With the Partitioning, OLAP, Data Mining and Real Application Testing options
+
+oracle@devdb01:/u01/g2dev/002/oradata/testdb [testdb]
+# which nid
+/u01/app/oracle/product/10.2/bin/nid
+
+oracle@devdb01:/u01/g2dev/002/oradata/testdb [testdb]
+# nid target=/
+
+DBNEWID: Release 10.2.0.4.0 - Production on Wed Oct 6 16:46:34 2010
+
+Copyright (c) 1982, 2007, Oracle.  All rights reserved.
+
+Connected to database TESTDB (DBID=2514319859)
+
+Connected to server version 10.2.0
+
+Control Files in database:
+    /u01/g2dev/002/oradata/testdb/control01.ctl
+
+Change database ID of database TESTDB? (Y/[N]) => Y
+
+Proceeding with operation
+Changing database ID from 2514319859 to 2515016301
+    Control File /u01/g2dev/002/oradata/testdb/control01.ctl - modified
+    Datafile /u01/g2dev/002/oradata/testdb/testdb_system.dbf - dbid changed
+    Datafile /u01/g2dev/002/oradata/testdb/testdb_undotbs_01.dbf - dbid changed
+    Datafile /u01/g2dev/002/oradata/testdb/testdb_sysaux.dbf - dbid changed
+    Datafile /u01/g2dev/002/oradata/testdb/testdb_users_01.dbf - dbid changed
+    Datafile /u01/g2dev/002/oradata/testdb/testdb__temp_01.dbf - dbid changed
+    Control File /u01/g2dev/002/oradata/testdb/control01.ctl - dbid changed
+    Instance shut down
+
+Database ID for database TESTDB changed to 2515016301.
+All previous backups and archived redo logs for this database are unusable.
+Database has been shutdown, open database with RESETLOGS option.
+Succesfully changed database ID.
+DBNEWID - Completed succesfully.
+
+
+oracle@devdb01:/u01/g2dev/002/oradata/testdb [testdb]
+# sqlplus / as sysdba
+
+SQL*Plus: Release 10.2.0.4.0 - Production on Wed Oct 6 16:47:52 2010
+
+Copyright (c) 1982, 2007, Oracle.  All Rights Reserved.
+
+Connected to an idle instance.
+
+SQL> startup mount
+ORACLE instance started.
+
+Total System Global Area  314572800 bytes
+Fixed Size                  2040280 bytes
+Variable Size              96476712 bytes
+Database Buffers          213909504 bytes
+Redo Buffers                2146304 bytes
+Database mounted.
+SQL> archive log list
+Database log mode              Archive Mode
+Automatic archival             Enabled
+Archive destination            /u01/g2dev/002/archive/testdb
+Oldest online log sequence     90
+Next log sequence to archive   91
+Current log sequence           91
+SQL> alter database open;           
+alter database open
+*
+ERROR at line 1:
+ORA-01589: must use RESETLOGS or NORESETLOGS option for database open
+
+
+SQL>  alter database open resetlogs;
+
+Database altered.
+
+SQL> select dbid,name from v$database;
+
+      DBID NAME
+---------- ---------
+2515016301 TESTDB
+
+SQL> exit
+
+### DBID has been changed successfully !!
+
+
+
+
