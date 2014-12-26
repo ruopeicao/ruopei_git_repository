@@ -1,7 +1,5 @@
 How to change dbid without change db name:
 
-Kevin: good code
-
 
 SQL> select dbid, name from v$database;
 
